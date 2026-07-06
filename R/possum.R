@@ -229,3 +229,127 @@ possum_risk <- function(data) {
     out$p_possum_mortality  <- p_possum(ps, os)
     out
 }
+
+## CR-POSSUM (colorectal) re-derives both the cut-points and the point weights
+## (Tekkis and others, 2004) -- it is NOT the 1/2/4/8 POSSUM scale. Only age
+## reaches 8; the other physiological variables cap at 3.
+
+.cr_age_pts   <- function(x) ifelse(x <= 60, 1L, ifelse(x <= 70, 3L,
+                          ifelse(x <= 80, 4L, 8L)))
+.cr_sbp_pts   <- function(x) ifelse(x >= 100 & x <= 170, 1L,
+                          ifelse(x > 170 | (x >= 90 & x < 100), 2L, 3L))
+.cr_pulse_pts <- function(x) ifelse(x >= 40 & x <= 100, 1L,
+                          ifelse(x > 100 & x <= 120, 2L, 3L))
+.cr_hb_pts    <- function(x) ifelse(x >= 13 & x <= 16, 1L,
+                          ifelse((x >= 10 & x < 13) | (x > 16 & x <= 18), 2L, 3L))
+.cr_urea_pts  <- function(x) ifelse(x <= 10, 1L, ifelse(x <= 15, 2L, 3L))
+
+#' CR-POSSUM physiological score
+#'
+#' Sums the six physiological components of the colorectal POSSUM (CR-POSSUM)
+#' score. Age, systolic blood pressure, pulse, haemoglobin and urea are scored
+#' from raw clinical values; \code{cardiac} is entered as its points.
+#'
+#' Cut-points and weights (Tekkis and others, 2004):
+#' \tabular{ll}{
+#'   age (years)        \tab \eqn{\le}60=1 / 61-80=3 or 4 / \eqn{\ge}81=8\cr
+#'   systolic BP (mmHg) \tab 100-170=1 / >170 or 90-99=2 / \eqn{\le}89=3\cr
+#'   pulse (/min)       \tab 40-100=1 / 101-120=2 / >120 or <40=3\cr
+#'   haemoglobin (g/dL) \tab 13-16=1 / 10-12.9 or 16.1-18=2 / <10 or >18=3\cr
+#'   urea (mmol/L)      \tab \eqn{\le}10=1 / 10.1-15=2 / >15=3\cr
+#'   cardiac failure    \tab none/mild=1 / moderate=2 / severe=3 (entered as points)
+#' }
+#'
+#' @param age,systolic_bp,pulse,hb,urea Numeric raw clinical values.
+#' @param cardiac CR-POSSUM cardiac-failure points (1, 2 or 3).
+#' @return Integer CR-POSSUM physiological score (range 6-23).
+#' @examples
+#' cr_possum_physiology(age = 72, cardiac = 1, systolic_bp = 140, pulse = 88,
+#'                      hb = 12, urea = 8)
+#' @export
+cr_possum_physiology <- function(age, cardiac, systolic_bp, pulse, hb, urea) {
+    .cr_age_pts(.num(age, "age")) +
+    .points(cardiac, "cardiac", allowed = c(1, 2, 3)) +
+    .cr_sbp_pts(.num(systolic_bp, "systolic_bp")) +
+    .cr_pulse_pts(.num(pulse, "pulse")) +
+    .cr_hb_pts(.num(hb, "hb")) +
+    .cr_urea_pts(.num(urea, "urea"))
+}
+
+#' CR-POSSUM operative score
+#'
+#' Sums the four operative components of CR-POSSUM, all entered as their points.
+#' \code{severity} 1 (minor) / 3 (moderate) / 4 (major) / 8 (complex major);
+#' \code{soiling} 1 (none or serous) / 2 (local pus) / 3 (free pus, faeces or
+#' blood); \code{cancer_staging} 1 (none or Dukes A-B) / 2 (Dukes C) / 3
+#' (Dukes D); \code{urgency} 1 (elective) / 3 (urgent) / 8 (emergency).
+#'
+#' @param severity CR-POSSUM operative severity points (1, 3, 4 or 8).
+#' @param soiling,cancer_staging Points (1, 2 or 3).
+#' @param urgency Mode-of-surgery points (1, 3 or 8).
+#' @return Integer CR-POSSUM operative score (range 4-22).
+#' @examples
+#' cr_possum_operative(severity = 4, soiling = 1, cancer_staging = 2, urgency = 1)
+#' @export
+cr_possum_operative <- function(severity, soiling, cancer_staging, urgency) {
+    .points(severity, "severity", allowed = c(1, 3, 4, 8)) +
+    .points(soiling, "soiling", allowed = c(1, 2, 3)) +
+    .points(cancer_staging, "cancer_staging", allowed = c(1, 2, 3)) +
+    .points(urgency, "urgency", allowed = c(1, 3, 8))
+}
+
+#' CR-POSSUM predicted mortality
+#'
+#' Applies the colorectal POSSUM mortality equation (Tekkis and others, 2004):
+#' \deqn{\mathrm{logit}(mortality) = -9.167 + 0.33 \times PS + 0.30 \times OS}
+#'
+#' @param physiological_score CR-POSSUM physiological score, e.g. from
+#'   \code{\link{cr_possum_physiology}}.
+#' @param operative_score CR-POSSUM operative score, e.g. from
+#'   \code{\link{cr_possum_operative}}.
+#' @return Predicted probability of mortality (0-1).
+#' @examples
+#' cr_possum(physiological_score = 12, operative_score = 8)
+#' @export
+cr_possum <- function(physiological_score, operative_score) {
+    ps <- .num(physiological_score, "physiological_score")
+    os <- .num(operative_score, "operative_score")
+    stats::plogis(-9.167 + 0.33 * ps + 0.30 * os)
+}
+
+#' V-POSSUM predicted mortality (vascular)
+#'
+#' Applies the vascular POSSUM (V-POSSUM) mortality equations (Prytherch and
+#' others, 2001). V-POSSUM uses the \emph{standard} POSSUM physiological and
+#' operative severity scores (from \code{\link{possum_physiology}} and
+#' \code{\link{possum_operative}}) and only recalibrates the regression:
+#' \deqn{\mathrm{physiology}: \mathrm{logit}(mortality) = -6.0386 + 0.1539 \times PS}
+#' \deqn{\mathrm{full}: \mathrm{logit}(mortality) = -8.0616 + 0.1552 \times PS + 0.1238 \times OS}
+#'
+#' The \code{"full"} (physiology + operative) coefficients above are drawn from
+#' a single secondary source and have not been independently confirmed against
+#' the primary publication; verify them before any clinical use. The
+#' \code{"physiology"} coefficients are corroborated by two sources.
+#'
+#' @param physiological_score Standard POSSUM physiological score.
+#' @param operative_score Standard POSSUM operative severity score; required for
+#'   \code{model = "full"}.
+#' @param model Either \code{"full"} (physiology + operative) or
+#'   \code{"physiology"} (physiology only).
+#' @return Predicted probability of mortality (0-1).
+#' @examples
+#' v_possum(physiological_score = 25, model = "physiology")
+#' v_possum(physiological_score = 25, operative_score = 14, model = "full")
+#' @export
+v_possum <- function(physiological_score, operative_score = NULL,
+                     model = c("full", "physiology")) {
+    model <- match.arg(model)
+    ps <- .num(physiological_score, "physiological_score")
+    if (model == "physiology")
+        return(stats::plogis(-6.0386 + 0.1539 * ps))
+    if (is.null(operative_score))
+        stop("`operative_score` is required for the full V-POSSUM model.",
+             call. = FALSE)
+    os <- .num(operative_score, "operative_score")
+    stats::plogis(-8.0616 + 0.1552 * ps + 0.1238 * os)
+}

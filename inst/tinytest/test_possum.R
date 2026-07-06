@@ -74,3 +74,42 @@ expect_equal(res$operative_score[1], 6L)
 expect_equal(res$p_possum_mortality[1], p_possum(12, 6))
 ## a missing column is reported
 expect_error(possum_risk(df[, -1]))
+
+## --- CR-POSSUM -------------------------------------------------------------
+
+## all-lowest patient scores the physiological minimum of 6
+expect_equal(
+    cr_possum_physiology(age = 55, cardiac = 1, systolic_bp = 120, pulse = 70,
+                         hb = 14, urea = 5),
+    6L)
+## age band weights are the CR-POSSUM ones (1/3/4/8, not 1/2/4/8)
+crp <- function(...) do.call(cr_possum_physiology,
+    modifyList(list(age = 55, cardiac = 1, systolic_bp = 120, pulse = 70,
+                    hb = 14, urea = 5), list(...)))
+expect_equal(crp(age = 65) - 6L, 2L)   # 61-70 -> 3
+expect_equal(crp(age = 75) - 6L, 3L)   # 71-80 -> 4
+expect_equal(crp(age = 82) - 6L, 7L)   # >=81  -> 8
+
+## operative minimum is 4; weights include 3 and 8
+expect_equal(cr_possum_operative(severity = 1, soiling = 1,
+                                 cancer_staging = 1, urgency = 1), 4L)
+expect_equal(cr_possum_operative(severity = 8, soiling = 3,
+                                 cancer_staging = 3, urgency = 8), 22L)
+
+## mortality equation
+expect_equal(cr_possum(physiological_score = 12, operative_score = 8),
+             0.05694, tolerance = 1e-3)
+
+## invalid points are rejected (severity must be 1/3/4/8)
+expect_error(cr_possum_operative(severity = 2, soiling = 1,
+                                 cancer_staging = 1, urgency = 1))
+
+## --- V-POSSUM (uses standard POSSUM scores) --------------------------------
+
+expect_equal(v_possum(physiological_score = 25, model = "physiology"),
+             0.10058, tolerance = 1e-3)
+expect_equal(v_possum(physiological_score = 25, operative_score = 14,
+                      model = "full"),
+             0.07953, tolerance = 1e-3)
+## full model needs the operative score
+expect_error(v_possum(physiological_score = 25, model = "full"))
