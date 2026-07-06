@@ -4,28 +4,39 @@
 \alias{v_possum}
 \title{V-POSSUM predicted mortality (vascular)}
 \usage{
-v_possum(physiological_score)
+v_possum(
+  physiological_score,
+  operative_score = NULL,
+  model = c("physiology", "full")
+)
 }
 \arguments{
 \item{physiological_score}{Standard POSSUM physiological score, e.g. from
 \code{\link{possum_physiology}}.}
+
+\item{operative_score}{Standard POSSUM operative severity score, e.g. from
+\code{\link{possum_operative}}. Required when \code{model = "full"}.}
+
+\item{model}{Which equation to use: \code{"physiology"} (default, physiology
+score only) or \code{"full"} (physiology plus operative score).}
 }
 \value{
 Predicted probability of mortality (0-1).
 }
 \description{
-Applies the vascular POSSUM (V-POSSUM) physiological mortality equation,
-computed from the \emph{standard} POSSUM physiological score (from
-\code{\link{possum_physiology}}):
+Applies a vascular POSSUM (V-POSSUM) mortality equation, computed from the
+\emph{standard} POSSUM physiological and operative severity scores (from
+\code{\link{possum_physiology}} and \code{\link{possum_operative}}). Two
+forms are provided:
 \deqn{\mathrm{logit}(mortality) = -6.0386 + 0.1539 \times PS}
+\deqn{\mathrm{logit}(mortality) = -8.0616 + 0.1552 \times PS + 0.1238 \times OS}
 }
 \details{
-V-POSSUM (Prytherch and others, 2001) reuses the standard POSSUM
-physiological score; the constant and coefficient here are as given in the
-NIHR Health Technology Assessment vascular-audit report. Only the
-physiology-based equation is provided; a physiology-plus-operative form has
-no traceable primary source and is omitted.
+V-POSSUM (Prytherch and others, 2001, for major arterial surgery) reuses the
+standard POSSUM scores. Both equations are as tabulated by Neary, Heather and
+Earnshaw (2003). No V-POSSUM morbidity equation has been published.
 }
 \examples{
 v_possum(physiological_score = 25)
+v_possum(physiological_score = 25, operative_score = 15, model = "full")
 }

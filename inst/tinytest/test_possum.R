@@ -98,7 +98,7 @@ expect_equal(cr_possum_operative(severity = 8, soiling = 3,
 
 ## mortality equation
 expect_equal(cr_possum(physiological_score = 12, operative_score = 8),
-             0.05694, tolerance = 1e-3)
+             0.06617, tolerance = 1e-3)
 
 ## invalid points are rejected (severity must be 1/3/4/8)
 expect_error(cr_possum_operative(severity = 2, soiling = 1,
@@ -106,4 +106,14 @@ expect_error(cr_possum_operative(severity = 2, soiling = 1,
 
 ## --- V-POSSUM (uses standard POSSUM scores) --------------------------------
 
-expect_equal(v_possum(physiological_score = 25), 0.10058, tolerance = 1e-3)
+## physiology-only (default)
+expect_equal(v_possum(physiological_score = 25), 0.10055, tolerance = 1e-3)
+
+## full model: physiology + operative
+expect_equal(
+    v_possum(physiological_score = 25, operative_score = 15, model = "full"),
+    0.08911, tolerance = 1e-3)
+
+## full model needs an operative score
+expect_error(v_possum(physiological_score = 25, model = "full"),
+             "operative_score")

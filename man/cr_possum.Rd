@@ -18,7 +18,7 @@ Predicted probability of mortality (0-1).
 }
 \description{
 Applies the colorectal POSSUM mortality equation (Tekkis and others, 2004):
-\deqn{\mathrm{logit}(mortality) = -9.167 + 0.33 \times PS + 0.30 \times OS}
+\deqn{\mathrm{logit}(mortality) = -9.167 + 0.338 \times PS + 0.308 \times OS}
 }
 \examples{
 cr_possum(physiological_score = 12, operative_score = 8)

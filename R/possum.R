@@ -301,7 +301,7 @@ cr_possum_operative <- function(severity, soiling, cancer_staging, urgency) {
 #' CR-POSSUM predicted mortality
 #'
 #' Applies the colorectal POSSUM mortality equation (Tekkis and others, 2004):
-#' \deqn{\mathrm{logit}(mortality) = -9.167 + 0.33 \times PS + 0.30 \times OS}
+#' \deqn{\mathrm{logit}(mortality) = -9.167 + 0.338 \times PS + 0.308 \times OS}
 #'
 #' @param physiological_score CR-POSSUM physiological score, e.g. from
 #'   \code{\link{cr_possum_physiology}}.
@@ -314,29 +314,42 @@ cr_possum_operative <- function(severity, soiling, cancer_staging, urgency) {
 cr_possum <- function(physiological_score, operative_score) {
     ps <- .num(physiological_score, "physiological_score")
     os <- .num(operative_score, "operative_score")
-    stats::plogis(-9.167 + 0.33 * ps + 0.30 * os)
+    stats::plogis(-9.167 + 0.338 * ps + 0.308 * os)
 }
 
 #' V-POSSUM predicted mortality (vascular)
 #'
-#' Applies the vascular POSSUM (V-POSSUM) physiological mortality equation,
-#' computed from the \emph{standard} POSSUM physiological score (from
-#' \code{\link{possum_physiology}}):
+#' Applies a vascular POSSUM (V-POSSUM) mortality equation, computed from the
+#' \emph{standard} POSSUM physiological and operative severity scores (from
+#' \code{\link{possum_physiology}} and \code{\link{possum_operative}}). Two
+#' forms are provided:
 #' \deqn{\mathrm{logit}(mortality) = -6.0386 + 0.1539 \times PS}
+#' \deqn{\mathrm{logit}(mortality) = -8.0616 + 0.1552 \times PS + 0.1238 \times OS}
 #'
-#' V-POSSUM (Prytherch and others, 2001) reuses the standard POSSUM
-#' physiological score; the constant and coefficient here are as given in the
-#' NIHR Health Technology Assessment vascular-audit report. Only the
-#' physiology-based equation is provided; a physiology-plus-operative form has
-#' no traceable primary source and is omitted.
+#' V-POSSUM (Prytherch and others, 2001, for major arterial surgery) reuses the
+#' standard POSSUM scores. Both equations are as tabulated by Neary, Heather and
+#' Earnshaw (2003). No V-POSSUM morbidity equation has been published.
 #'
 #' @param physiological_score Standard POSSUM physiological score, e.g. from
 #'   \code{\link{possum_physiology}}.
+#' @param operative_score Standard POSSUM operative severity score, e.g. from
+#'   \code{\link{possum_operative}}. Required when \code{model = "full"}.
+#' @param model Which equation to use: \code{"physiology"} (default, physiology
+#'   score only) or \code{"full"} (physiology plus operative score).
 #' @return Predicted probability of mortality (0-1).
 #' @examples
 #' v_possum(physiological_score = 25)
+#' v_possum(physiological_score = 25, operative_score = 15, model = "full")
 #' @export
-v_possum <- function(physiological_score) {
+v_possum <- function(physiological_score, operative_score = NULL,
+                     model = c("physiology", "full")) {
+    model <- match.arg(model)
     ps <- .num(physiological_score, "physiological_score")
-    stats::plogis(-6.0386 + 0.1539 * ps)
+    if (model == "physiology")
+        return(stats::plogis(-6.0386 + 0.1539 * ps))
+    if (is.null(operative_score))
+        stop("`operative_score` is required when model = \"full\".",
+             call. = FALSE)
+    os <- .num(operative_score, "operative_score")
+    stats::plogis(-8.0616 + 0.1552 * ps + 0.1238 * os)
 }
