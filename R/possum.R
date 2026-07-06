@@ -175,3 +175,57 @@ p_possum <- function(physiological_score, operative_score) {
     os <- .num(operative_score, "operative_score")
     stats::plogis(-9.065 + 0.1692 * ps + 0.1550 * os)
 }
+
+#' POSSUM and P-POSSUM risk for a table of patients
+#'
+#' Convenience wrapper that scores a whole cohort in one call, rather than
+#' invoking \code{\link{possum_physiology}}, \code{\link{possum_operative}} and
+#' the risk functions separately. All work is vectorised over the rows of
+#' \code{data}; a single-row data frame is one patient.
+#'
+#' @param data A data frame (one row per patient) containing the columns
+#'   required by \code{\link{possum_physiology}} and
+#'   \code{\link{possum_operative}}: \code{age}, \code{systolic_bp},
+#'   \code{pulse}, \code{gcs}, \code{hb}, \code{wbc}, \code{urea},
+#'   \code{sodium}, \code{potassium}, \code{cardiac}, \code{respiratory},
+#'   \code{ecg}, \code{severity}, \code{n_procedures}, \code{blood_loss},
+#'   \code{soiling}, \code{malignancy} and \code{urgency}.
+#' @return \code{data} with five columns added: \code{physiological_score},
+#'   \code{operative_score}, \code{possum_morbidity}, \code{possum_mortality}
+#'   and \code{p_possum_mortality}.
+#' @examples
+#' df <- data.frame(
+#'   age = c(45, 82), systolic_bp = c(120, 95), pulse = c(70, 115),
+#'   gcs = c(15, 13), hb = c(14, 9.5), wbc = c(7, 22), urea = c(5, 18),
+#'   sodium = c(140, 128), potassium = c(4.2, 6.1), cardiac = c(1, 4),
+#'   respiratory = c(1, 4), ecg = c(1, 8), severity = c(1, 8),
+#'   n_procedures = c(1, 1), blood_loss = c(50, 1200), soiling = c(1, 8),
+#'   malignancy = c(1, 4), urgency = c(1, 8))
+#' possum_risk(df)
+#' @export
+possum_risk <- function(data) {
+    required <- c("age", "systolic_bp", "pulse", "gcs", "hb", "wbc", "urea",
+                  "sodium", "potassium", "cardiac", "respiratory", "ecg",
+                  "severity", "n_procedures", "blood_loss", "soiling",
+                  "malignancy", "urgency")
+    absent <- setdiff(required, names(data))
+    if (length(absent))
+        stop("`data` is missing required columns: ",
+             paste(absent, collapse = ", "), call. = FALSE)
+
+    ps <- possum_physiology(data$age, data$systolic_bp, data$pulse, data$gcs,
+                            data$hb, data$wbc, data$urea, data$sodium,
+                            data$potassium, data$cardiac, data$respiratory,
+                            data$ecg)
+    os <- possum_operative(data$severity, data$n_procedures, data$blood_loss,
+                           data$soiling, data$malignancy, data$urgency)
+    risk <- possum(ps, os)
+
+    out <- as.data.frame(data)
+    out$physiological_score <- ps
+    out$operative_score     <- os
+    out$possum_morbidity    <- risk$morbidity
+    out$possum_mortality    <- risk$mortality
+    out$p_possum_mortality  <- p_possum(ps, os)
+    out
+}

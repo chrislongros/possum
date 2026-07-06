@@ -53,3 +53,24 @@ expect_error(possum_physiology(age = 55, systolic_bp = 120, pulse = 70,
                                gcs = 15, hb = 14, wbc = 7, urea = 6,
                                sodium = 140, potassium = 4.2, cardiac = 1,
                                respiratory = 1, ecg = 2))   # ecg must be 1/4/8
+
+## --- data-frame interface --------------------------------------------------
+
+df <- data.frame(
+    age = c(45, 82), systolic_bp = c(120, 95), pulse = c(70, 115),
+    gcs = c(15, 13), hb = c(14, 9.5), wbc = c(7, 22), urea = c(5, 18),
+    sodium = c(140, 128), potassium = c(4.2, 6.1), cardiac = c(1, 4),
+    respiratory = c(1, 4), ecg = c(1, 8), severity = c(1, 8),
+    n_procedures = c(1, 1), blood_loss = c(50, 1200), soiling = c(1, 8),
+    malignancy = c(1, 4), urgency = c(1, 8))
+res <- possum_risk(df)
+
+expect_equal(nrow(res), 2L)
+expect_true(all(c("physiological_score", "operative_score", "possum_morbidity",
+                  "possum_mortality", "p_possum_mortality") %in% names(res)))
+## the fit patient in row 1 matches the scalar path
+expect_equal(res$physiological_score[1], 12L)
+expect_equal(res$operative_score[1], 6L)
+expect_equal(res$p_possum_mortality[1], p_possum(12, 6))
+## a missing column is reported
+expect_error(possum_risk(df[, -1]))
