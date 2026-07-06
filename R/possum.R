@@ -353,3 +353,38 @@ v_possum <- function(physiological_score, operative_score = NULL,
     os <- .num(operative_score, "operative_score")
     stats::plogis(-8.0616 + 0.1552 * ps + 0.1238 * os)
 }
+
+#' RAAA-POSSUM predicted mortality (ruptured abdominal aortic aneurysm)
+#'
+#' Applies a POSSUM mortality equation specific to ruptured abdominal aortic
+#' aneurysm surgery, computed from the standard POSSUM physiological and
+#' operative severity scores. Two forms are provided:
+#' \deqn{\mathrm{logit}(mortality) = -2.7569 + 0.0968 \times PS}
+#' \deqn{\mathrm{logit}(mortality) = -4.9795 + 0.0913 \times PS + 0.0958 \times OS}
+#'
+#' RAAA-POSSUM (Prytherch and others, 2001) reuses the standard POSSUM scores.
+#' Both equations are as tabulated by Neary, Heather and Earnshaw (2003).
+#'
+#' @param physiological_score Standard POSSUM physiological score, e.g. from
+#'   \code{\link{possum_physiology}}.
+#' @param operative_score Standard POSSUM operative severity score, e.g. from
+#'   \code{\link{possum_operative}}. Required when \code{model = "full"}.
+#' @param model Which equation to use: \code{"physiology"} (default, physiology
+#'   score only) or \code{"full"} (physiology plus operative score).
+#' @return Predicted probability of mortality (0-1).
+#' @examples
+#' raaa_possum(physiological_score = 30)
+#' raaa_possum(physiological_score = 30, operative_score = 18, model = "full")
+#' @export
+raaa_possum <- function(physiological_score, operative_score = NULL,
+                        model = c("physiology", "full")) {
+    model <- match.arg(model)
+    ps <- .num(physiological_score, "physiological_score")
+    if (model == "physiology")
+        return(stats::plogis(-2.7569 + 0.0968 * ps))
+    if (is.null(operative_score))
+        stop("`operative_score` is required when model = \"full\".",
+             call. = FALSE)
+    os <- .num(operative_score, "operative_score")
+    stats::plogis(-4.9795 + 0.0913 * ps + 0.0958 * os)
+}

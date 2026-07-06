@@ -106,14 +106,18 @@ expect_error(cr_possum_operative(severity = 2, soiling = 1,
 
 ## --- V-POSSUM (uses standard POSSUM scores) --------------------------------
 
-## physiology-only (default)
 expect_equal(v_possum(physiological_score = 25), 0.10055, tolerance = 1e-3)
-
-## full model: physiology + operative
 expect_equal(
     v_possum(physiological_score = 25, operative_score = 15, model = "full"),
     0.08911, tolerance = 1e-3)
-
-## full model needs an operative score
 expect_error(v_possum(physiological_score = 25, model = "full"),
+             "operative_score")
+
+## --- RAAA-POSSUM (uses standard POSSUM scores) -----------------------------
+
+expect_equal(raaa_possum(physiological_score = 30), 0.53671, tolerance = 1e-3)
+expect_equal(
+    raaa_possum(physiological_score = 30, operative_score = 18, model = "full"),
+    0.37377, tolerance = 1e-3)
+expect_error(raaa_possum(physiological_score = 30, model = "full"),
              "operative_score")

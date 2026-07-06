@@ -6,8 +6,10 @@ Authors@R: person("Christos", "Longros", email = "chris.longros@gmail.com",
     role = c("aut", "cre"))
 Description: Computes the Physiological and Operative Severity Score for the
     enUmeration of Mortality and morbidity (POSSUM), its Portsmouth
-    modification (P-POSSUM), and the colorectal (CR-POSSUM) and vascular
-    (V-POSSUM) variants, risk-adjustment systems used in surgical audit. Functions map physiological and operative variables to their
+    modification (P-POSSUM), and the colorectal (CR-POSSUM), vascular
+    (V-POSSUM) and ruptured aortic aneurysm (RAAA-POSSUM) variants,
+    risk-adjustment systems used in surgical audit. Functions map
+    physiological and operative variables to their
     component scores and return the predicted probabilities of morbidity and
     mortality from the published logistic equations. The coefficients follow
     Copeland and others (1991) <doi:10.1002/bjs.1800780327> for POSSUM,
