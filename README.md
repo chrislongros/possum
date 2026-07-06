@@ -50,6 +50,12 @@ This package is for audit and research. It is not a validated medical device,
 and its output must not be used as the sole basis for any clinical decision.
 Confirm the cut-points and coefficients against the original papers before use.
 
+The POSSUM equations were derived in the 1990s and 2000s. Perioperative
+mortality has fallen since then, so on contemporary populations these models
+tend to over-predict, and are better suited to case-mix–adjusted audit than to
+individual risk prediction. Newer tools (for example NELA, SORT and, in vascular
+surgery, VBHOM) may be preferable for the latter.
+
 ## License
 
 MIT.
