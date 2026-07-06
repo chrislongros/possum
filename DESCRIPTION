@@ -1,0 +1,23 @@
+Package: possum
+Type: Package
+Title: POSSUM and P-POSSUM Surgical Risk Scores
+Version: 0.1.0
+Authors@R: person("Christos", "Longros", email = "chris.longros@gmail.com",
+    role = c("aut", "cre"))
+Description: Computes the Physiological and Operative Severity Score for the
+    enUmeration of Mortality and morbidity (POSSUM) and its Portsmouth
+    modification (P-POSSUM), two risk-adjustment systems used in surgical
+    audit. Functions map physiological and operative variables to their
+    component scores and return the predicted probabilities of morbidity and
+    mortality from the published logistic equations. The coefficients follow
+    Copeland and others (1991) <doi:10.1002/bjs.1800780327> for POSSUM and
+    Prytherch and others (1998) <doi:10.1046/j.1365-2168.1998.00840.x> for
+    P-POSSUM. The package is intended for audit and research; it is not a
+    validated medical device and must not be used as the sole basis for
+    clinical decisions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+URL: https://github.com/chrislongros/possum
+BugReports: https://github.com/chrislongros/possum/issues
+Suggests: tinytest
+Config/roxygen2/version: 8.0.0

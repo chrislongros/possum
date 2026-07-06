@@ -1,0 +1,7 @@
+^possum\.Rproj$
+^\.Rproj\.user$
+^\.git$
+^\.gitignore$
+^.*\.tar\.gz$
+^.*\.Rcheck$
+^README\.md$
