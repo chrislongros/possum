@@ -106,10 +106,4 @@ expect_error(cr_possum_operative(severity = 2, soiling = 1,
 
 ## --- V-POSSUM (uses standard POSSUM scores) --------------------------------
 
-expect_equal(v_possum(physiological_score = 25, model = "physiology"),
-             0.10058, tolerance = 1e-3)
-expect_equal(v_possum(physiological_score = 25, operative_score = 14,
-                      model = "full"),
-             0.07953, tolerance = 1e-3)
-## full model needs the operative score
-expect_error(v_possum(physiological_score = 25, model = "full"))
+expect_equal(v_possum(physiological_score = 25), 0.10058, tolerance = 1e-3)

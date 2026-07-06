@@ -4,39 +4,28 @@
 \alias{v_possum}
 \title{V-POSSUM predicted mortality (vascular)}
 \usage{
-v_possum(
-  physiological_score,
-  operative_score = NULL,
-  model = c("full", "physiology")
-)
+v_possum(physiological_score)
 }
 \arguments{
-\item{physiological_score}{Standard POSSUM physiological score.}
-
-\item{operative_score}{Standard POSSUM operative severity score; required for
-\code{model = "full"}.}
-
-\item{model}{Either \code{"full"} (physiology + operative) or
-\code{"physiology"} (physiology only).}
+\item{physiological_score}{Standard POSSUM physiological score, e.g. from
+\code{\link{possum_physiology}}.}
 }
 \value{
 Predicted probability of mortality (0-1).
 }
 \description{
-Applies the vascular POSSUM (V-POSSUM) mortality equations (Prytherch and
-others, 2001). V-POSSUM uses the \emph{standard} POSSUM physiological and
-operative severity scores (from \code{\link{possum_physiology}} and
-\code{\link{possum_operative}}) and only recalibrates the regression:
-\deqn{\mathrm{physiology}: \mathrm{logit}(mortality) = -6.0386 + 0.1539 \times PS}
-\deqn{\mathrm{full}: \mathrm{logit}(mortality) = -8.0616 + 0.1552 \times PS + 0.1238 \times OS}
+Applies the vascular POSSUM (V-POSSUM) physiological mortality equation,
+computed from the \emph{standard} POSSUM physiological score (from
+\code{\link{possum_physiology}}):
+\deqn{\mathrm{logit}(mortality) = -6.0386 + 0.1539 \times PS}
 }
 \details{
-The \code{"full"} (physiology + operative) coefficients above are drawn from
-a single secondary source and have not been independently confirmed against
-the primary publication; verify them before any clinical use. The
-\code{"physiology"} coefficients are corroborated by two sources.
+V-POSSUM (Prytherch and others, 2001) reuses the standard POSSUM
+physiological score; the constant and coefficient here are as given in the
+NIHR Health Technology Assessment vascular-audit report. Only the
+physiology-based equation is provided; a physiology-plus-operative form has
+no traceable primary source and is omitted.
 }
 \examples{
-v_possum(physiological_score = 25, model = "physiology")
-v_possum(physiological_score = 25, operative_score = 14, model = "full")
+v_possum(physiological_score = 25)
 }
