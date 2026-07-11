@@ -11,11 +11,11 @@ raaa_possum(
 )
 }
 \arguments{
-\item{physiological_score}{Standard POSSUM physiological score, e.g. from
-\code{\link{possum_physiology}}.}
+\item{physiological_score}{Standard POSSUM physiological score (12-88), e.g.
+from \code{\link{possum_physiology}}.}
 
-\item{operative_score}{Standard POSSUM operative severity score, e.g. from
-\code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+\item{operative_score}{Standard POSSUM operative severity score (6-48), e.g.
+from \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
 error when \code{model = "physiology"}, which cannot use it.}
 
 \item{model}{Which equation to use: \code{"physiology"} (default, physiology

@@ -7,10 +7,10 @@
 possum(physiological_score, operative_score)
 }
 \arguments{
-\item{physiological_score}{POSSUM physiological score, e.g. from
+\item{physiological_score}{POSSUM physiological score (12-88), e.g. from
 \code{\link{possum_physiology}}.}
 
-\item{operative_score}{POSSUM operative severity score, e.g. from
+\item{operative_score}{POSSUM operative severity score (6-48), e.g. from
 \code{\link{possum_operative}}.}
 }
 \value{

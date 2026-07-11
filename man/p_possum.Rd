@@ -7,9 +7,9 @@
 p_possum(physiological_score, operative_score)
 }
 \arguments{
-\item{physiological_score}{POSSUM physiological score.}
+\item{physiological_score}{POSSUM physiological score (12-88).}
 
-\item{operative_score}{POSSUM operative severity score.}
+\item{operative_score}{POSSUM operative severity score (6-48).}
 }
 \value{
 Predicted probability of mortality (0-1).

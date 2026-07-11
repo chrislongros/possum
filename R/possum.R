@@ -26,6 +26,18 @@
     x
 }
 
+## Each score has a fixed possible range, so a value outside it is an input
+## error -- most often the physiological and operative scores passed the wrong
+## way round, which otherwise returns a plausible but wrong mortality.
+.score <- function(x, name, lo, hi) {
+    x <- .num(x, name)
+    if (any(x < lo | x > hi))
+        stop(sprintf("`%s` must be between %d and %d; got %s.",
+                     name, lo, hi, paste(x[x < lo | x > hi], collapse = ", ")),
+             call. = FALSE)
+    x
+}
+
 ## The physiology-only equations cannot use an operative score. Rather than
 ## discard one the caller supplied -- which would quietly return a different
 ## mortality from the one they asked for -- refuse it.
@@ -40,7 +52,7 @@
     if (is.null(operative_score))
         stop("`operative_score` is required when model = \"full\".",
              call. = FALSE)
-    .num(operative_score, "operative_score")
+    .score(operative_score, "operative_score", 6L, 48L)
 }
 
 .age_pts       <- function(x) ifelse(x <= 60, 1L, ifelse(x <= 70, 2L, 4L))
@@ -159,9 +171,9 @@ possum_operative <- function(severity, n_procedures, blood_loss, soiling,
 #' \deqn{\mathrm{logit}(morbidity) = -5.91 + 0.16 \times PS + 0.19 \times OSS}
 #' \deqn{\mathrm{logit}(mortality) = -7.04 + 0.13 \times PS + 0.16 \times OSS}
 #'
-#' @param physiological_score POSSUM physiological score, e.g. from
+#' @param physiological_score POSSUM physiological score (12-88), e.g. from
 #'   \code{\link{possum_physiology}}.
-#' @param operative_score POSSUM operative severity score, e.g. from
+#' @param operative_score POSSUM operative severity score (6-48), e.g. from
 #'   \code{\link{possum_operative}}.
 #' @return A list with elements \code{morbidity} and \code{mortality}, the
 #'   predicted probabilities (0-1).
@@ -169,8 +181,8 @@ possum_operative <- function(severity, n_procedures, blood_loss, soiling,
 #' possum(physiological_score = 20, operative_score = 10)
 #' @export
 possum <- function(physiological_score, operative_score) {
-    ps <- .num(physiological_score, "physiological_score")
-    os <- .num(operative_score, "operative_score")
+    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
+    os <- .score(operative_score, "operative_score", 6L, 48L)
     list(morbidity = stats::plogis(-5.91 + 0.16 * ps + 0.19 * os),
          mortality = stats::plogis(-7.04 + 0.13 * ps + 0.16 * os))
 }
@@ -181,15 +193,15 @@ possum <- function(physiological_score, operative_score) {
 #' 1998), which recalibrates the POSSUM mortality prediction:
 #' \deqn{\mathrm{logit}(mortality) = -9.065 + 0.1692 \times PS + 0.1550 \times OSS}
 #'
-#' @param physiological_score POSSUM physiological score.
-#' @param operative_score POSSUM operative severity score.
+#' @param physiological_score POSSUM physiological score (12-88).
+#' @param operative_score POSSUM operative severity score (6-48).
 #' @return Predicted probability of mortality (0-1).
 #' @examples
 #' p_possum(physiological_score = 20, operative_score = 10)
 #' @export
 p_possum <- function(physiological_score, operative_score) {
-    ps <- .num(physiological_score, "physiological_score")
-    os <- .num(operative_score, "operative_score")
+    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
+    os <- .score(operative_score, "operative_score", 6L, 48L)
     stats::plogis(-9.065 + 0.1692 * ps + 0.1550 * os)
 }
 
@@ -320,17 +332,17 @@ cr_possum_operative <- function(severity, soiling, cancer_staging, urgency) {
 #' Applies the colorectal POSSUM mortality equation (Tekkis and others, 2004):
 #' \deqn{\mathrm{logit}(mortality) = -9.167 + 0.338 \times PS + 0.308 \times OS}
 #'
-#' @param physiological_score CR-POSSUM physiological score, e.g. from
+#' @param physiological_score CR-POSSUM physiological score (6-23), e.g. from
 #'   \code{\link{cr_possum_physiology}}.
-#' @param operative_score CR-POSSUM operative score, e.g. from
+#' @param operative_score CR-POSSUM operative score (4-22), e.g. from
 #'   \code{\link{cr_possum_operative}}.
 #' @return Predicted probability of mortality (0-1).
 #' @examples
 #' cr_possum(physiological_score = 12, operative_score = 8)
 #' @export
 cr_possum <- function(physiological_score, operative_score) {
-    ps <- .num(physiological_score, "physiological_score")
-    os <- .num(operative_score, "operative_score")
+    ps <- .score(physiological_score, "physiological_score", 6L, 23L)
+    os <- .score(operative_score, "operative_score", 4L, 22L)
     stats::plogis(-9.167 + 0.338 * ps + 0.308 * os)
 }
 
@@ -347,10 +359,10 @@ cr_possum <- function(physiological_score, operative_score) {
 #' standard POSSUM scores. Both equations are as tabulated by Neary, Heather and
 #' Earnshaw (2003). No V-POSSUM morbidity equation has been published.
 #'
-#' @param physiological_score Standard POSSUM physiological score, e.g. from
-#'   \code{\link{possum_physiology}}.
-#' @param operative_score Standard POSSUM operative severity score, e.g. from
-#'   \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+#' @param physiological_score Standard POSSUM physiological score (12-88), e.g.
+#'   from \code{\link{possum_physiology}}.
+#' @param operative_score Standard POSSUM operative severity score (6-48), e.g.
+#'   from \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
 #'   error when \code{model = "physiology"}, which cannot use it.
 #' @param model Which equation to use: \code{"physiology"} (default, physiology
 #'   score only) or \code{"full"} (physiology plus operative score).
@@ -362,7 +374,7 @@ cr_possum <- function(physiological_score, operative_score) {
 v_possum <- function(physiological_score, operative_score = NULL,
                      model = c("physiology", "full")) {
     model <- match.arg(model)
-    ps <- .num(physiological_score, "physiological_score")
+    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
     if (model == "physiology") {
         .no_operative_score(operative_score)
         return(stats::plogis(-6.0386 + 0.1539 * ps))
@@ -382,10 +394,10 @@ v_possum <- function(physiological_score, operative_score = NULL,
 #' RAAA-POSSUM (Prytherch and others, 2001) reuses the standard POSSUM scores.
 #' Both equations are as tabulated by Neary, Heather and Earnshaw (2003).
 #'
-#' @param physiological_score Standard POSSUM physiological score, e.g. from
-#'   \code{\link{possum_physiology}}.
-#' @param operative_score Standard POSSUM operative severity score, e.g. from
-#'   \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+#' @param physiological_score Standard POSSUM physiological score (12-88), e.g.
+#'   from \code{\link{possum_physiology}}.
+#' @param operative_score Standard POSSUM operative severity score (6-48), e.g.
+#'   from \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
 #'   error when \code{model = "physiology"}, which cannot use it.
 #' @param model Which equation to use: \code{"physiology"} (default, physiology
 #'   score only) or \code{"full"} (physiology plus operative score).
@@ -397,7 +409,7 @@ v_possum <- function(physiological_score, operative_score = NULL,
 raaa_possum <- function(physiological_score, operative_score = NULL,
                         model = c("physiology", "full")) {
     model <- match.arg(model)
-    ps <- .num(physiological_score, "physiological_score")
+    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
     if (model == "physiology") {
         .no_operative_score(operative_score)
         return(stats::plogis(-2.7569 + 0.0968 * ps))

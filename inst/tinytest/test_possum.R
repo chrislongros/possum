@@ -277,6 +277,29 @@ expect_error(score(age = NA), "age")
 expect_error(score(potassium = "4.2"), "potassium")
 expect_error(score(cardiac = NA), "cardiac")
 
+## A score outside its possible range is an input error, not something to
+## predict from. This is what catches the two scores passed the wrong way round.
+expect_error(possum(10, 20), "physiological_score")     # swapped arguments
+expect_error(p_possum(10, 20), "physiological_score")
+expect_error(p_possum(-50, 6), "physiological_score")
+expect_error(possum(12, 5), "operative_score")
+expect_error(possum(89, 6), "physiological_score")
+expect_error(possum(12, 49), "operative_score")
+expect_error(cr_possum(24, 4), "physiological_score")   # CR range is 6-23
+expect_error(cr_possum(6, 23), "operative_score")       # CR range is 4-22
+expect_error(v_possum(11), "physiological_score")
+expect_error(raaa_possum(89), "physiological_score")
+expect_error(v_possum(25, 49, model = "full"), "operative_score")
+
+## the boundaries themselves are valid
+expect_true(is.numeric(possum(12, 6)$mortality))
+expect_true(is.numeric(possum(88, 48)$mortality))
+expect_true(is.numeric(cr_possum(6, 4)))
+expect_true(is.numeric(cr_possum(23, 22)))
+
+## the offending value is named in the message
+expect_error(p_possum(200, 6), "200")
+
 ## --- data-frame interface --------------------------------------------------
 
 df <- data.frame(
