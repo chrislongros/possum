@@ -300,6 +300,25 @@ expect_true(is.numeric(cr_possum(23, 22)))
 ## the offending value is named in the message
 expect_error(p_possum(200, 6), "200")
 
+## A raw value that cannot exist must not be scored. Without this a GCS of 20
+## falls into the >=15 band and is scored as a perfectly normal 1 point.
+expect_error(score(gcs = 20), "gcs")
+expect_error(score(gcs = 2), "gcs")
+expect_error(score(age = -5), "age")
+expect_error(score(hb = -1), "hb")
+expect_error(score(wbc = -5), "wbc")
+expect_error(score(sodium = -1), "sodium")
+expect_error(oband(blood_loss = -100), "blood_loss")
+expect_error(oband(n_procedures = 0), "n_procedures")
+expect_error(cband(age = -1), "age")
+expect_error(cband(urea = -1), "urea")
+
+## the bounds themselves are valid
+expect_identical(band(gcs = 3), 7L)
+expect_identical(band(gcs = 15), 0L)
+expect_identical(oband(blood_loss = 0), 0L)
+expect_identical(oband(n_procedures = 1), 0L)
+
 ## --- data-frame interface --------------------------------------------------
 
 df <- data.frame(

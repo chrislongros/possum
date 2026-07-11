@@ -7,7 +7,8 @@
 cr_possum_physiology(age, cardiac, systolic_bp, pulse, hb, urea)
 }
 \arguments{
-\item{age, systolic_bp, pulse, hb, urea}{Numeric raw clinical values.}
+\item{age, systolic_bp, pulse, hb, urea}{Numeric raw clinical values, all
+non-negative.}
 
 \item{cardiac}{CR-POSSUM cardiac-failure points (1, 2 or 3).}
 }

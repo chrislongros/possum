@@ -26,15 +26,18 @@
     x
 }
 
-## Each score has a fixed possible range, so a value outside it is an input
-## error -- most often the physiological and operative scores passed the wrong
-## way round, which otherwise returns a plausible but wrong mortality.
-.score <- function(x, name, lo, hi) {
+## Values outside their possible range are input errors, not something to score
+## or predict from. Two cases matter: the physiological and operative scores
+## passed the wrong way round, and a raw value that cannot exist (a negative
+## blood loss, a GCS of 20), which would otherwise land in a band and be scored.
+.range <- function(x, name, lo, hi = Inf) {
     x <- .num(x, name)
-    if (any(x < lo | x > hi))
-        stop(sprintf("`%s` must be between %d and %d; got %s.",
-                     name, lo, hi, paste(x[x < lo | x > hi], collapse = ", ")),
-             call. = FALSE)
+    bad <- x < lo | x > hi
+    if (any(bad))
+        stop(sprintf("`%s` must be %s; got %s.", name,
+                     if (is.finite(hi)) sprintf("between %g and %g", lo, hi)
+                     else sprintf("at least %g", lo),
+                     paste(x[bad], collapse = ", ")), call. = FALSE)
     x
 }
 
@@ -52,7 +55,7 @@
     if (is.null(operative_score))
         stop("`operative_score` is required when model = \"full\".",
              call. = FALSE)
-    .score(operative_score, "operative_score", 6L, 48L)
+    .range(operative_score, "operative_score", 6, 48)
 }
 
 .age_pts       <- function(x) ifelse(x <= 60, 1L, ifelse(x <= 70, 2L, 4L))
@@ -105,7 +108,8 @@
 #' original tables before use.
 #'
 #' @param age,systolic_bp,pulse,gcs,hb,wbc,urea,sodium,potassium Numeric raw
-#'   clinical values in the units above.
+#'   clinical values in the units above. All must be non-negative, and
+#'   \code{gcs} must be 3-15, the range of the scale.
 #' @param cardiac,respiratory POSSUM points (1, 2, 4 or 8) for the cardiac and
 #'   respiratory signs.
 #' @param ecg POSSUM points for the ECG (1, 4 or 8).
@@ -117,15 +121,15 @@
 #' @export
 possum_physiology <- function(age, systolic_bp, pulse, gcs, hb, wbc, urea,
                               sodium, potassium, cardiac, respiratory, ecg) {
-    .age_pts(.num(age, "age")) +
-    .sbp_pts(.num(systolic_bp, "systolic_bp")) +
-    .pulse_pts(.num(pulse, "pulse")) +
-    .gcs_pts(.num(gcs, "gcs")) +
-    .hb_pts(.num(hb, "hb")) +
-    .wbc_pts(.num(wbc, "wbc")) +
-    .urea_pts(.num(urea, "urea")) +
-    .sodium_pts(.num(sodium, "sodium")) +
-    .potassium_pts(.num(potassium, "potassium")) +
+    .age_pts(.range(age, "age", 0)) +
+    .sbp_pts(.range(systolic_bp, "systolic_bp", 0)) +
+    .pulse_pts(.range(pulse, "pulse", 0)) +
+    .gcs_pts(.range(gcs, "gcs", 3, 15)) +
+    .hb_pts(.range(hb, "hb", 0)) +
+    .wbc_pts(.range(wbc, "wbc", 0)) +
+    .urea_pts(.range(urea, "urea", 0)) +
+    .sodium_pts(.range(sodium, "sodium", 0)) +
+    .potassium_pts(.range(potassium, "potassium", 0)) +
     .points(cardiac, "cardiac") +
     .points(respiratory, "respiratory") +
     .points(ecg, "ecg", allowed = c(1, 4, 8))
@@ -147,8 +151,8 @@ possum_physiology <- function(age, systolic_bp, pulse, gcs, hb, wbc, urea,
 #'
 #' @param severity,soiling,malignancy POSSUM points (1, 2, 4 or 8).
 #' @param urgency POSSUM points for the mode of surgery (1, 4 or 8).
-#' @param n_procedures Number of procedures at this operation.
-#' @param blood_loss Total blood loss in mL.
+#' @param n_procedures Number of procedures at this operation (at least 1).
+#' @param blood_loss Total blood loss in mL (non-negative).
 #' @return Integer operative severity score (minimum 6).
 #' @examples
 #' possum_operative(severity = 4, n_procedures = 1, blood_loss = 200,
@@ -157,8 +161,8 @@ possum_physiology <- function(age, systolic_bp, pulse, gcs, hb, wbc, urea,
 possum_operative <- function(severity, n_procedures, blood_loss, soiling,
                              malignancy, urgency) {
     .points(severity, "severity") +
-    .nproc_pts(.num(n_procedures, "n_procedures")) +
-    .blood_pts(.num(blood_loss, "blood_loss")) +
+    .nproc_pts(.range(n_procedures, "n_procedures", 1)) +
+    .blood_pts(.range(blood_loss, "blood_loss", 0)) +
     .points(soiling, "soiling") +
     .points(malignancy, "malignancy") +
     .points(urgency, "urgency", allowed = c(1, 4, 8))
@@ -181,8 +185,8 @@ possum_operative <- function(severity, n_procedures, blood_loss, soiling,
 #' possum(physiological_score = 20, operative_score = 10)
 #' @export
 possum <- function(physiological_score, operative_score) {
-    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
-    os <- .score(operative_score, "operative_score", 6L, 48L)
+    ps <- .range(physiological_score, "physiological_score", 12, 88)
+    os <- .range(operative_score, "operative_score", 6, 48)
     list(morbidity = stats::plogis(-5.91 + 0.16 * ps + 0.19 * os),
          mortality = stats::plogis(-7.04 + 0.13 * ps + 0.16 * os))
 }
@@ -200,8 +204,8 @@ possum <- function(physiological_score, operative_score) {
 #' p_possum(physiological_score = 20, operative_score = 10)
 #' @export
 p_possum <- function(physiological_score, operative_score) {
-    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
-    os <- .score(operative_score, "operative_score", 6L, 48L)
+    ps <- .range(physiological_score, "physiological_score", 12, 88)
+    os <- .range(operative_score, "operative_score", 6, 48)
     stats::plogis(-9.065 + 0.1692 * ps + 0.1550 * os)
 }
 
@@ -289,7 +293,8 @@ possum_risk <- function(data) {
 #'   cardiac failure    \tab none/mild=1 / moderate=2 / severe=3 (entered as points)
 #' }
 #'
-#' @param age,systolic_bp,pulse,hb,urea Numeric raw clinical values.
+#' @param age,systolic_bp,pulse,hb,urea Numeric raw clinical values, all
+#'   non-negative.
 #' @param cardiac CR-POSSUM cardiac-failure points (1, 2 or 3).
 #' @return Integer CR-POSSUM physiological score (range 6-23).
 #' @examples
@@ -297,12 +302,12 @@ possum_risk <- function(data) {
 #'                      hb = 12, urea = 8)
 #' @export
 cr_possum_physiology <- function(age, cardiac, systolic_bp, pulse, hb, urea) {
-    .cr_age_pts(.num(age, "age")) +
+    .cr_age_pts(.range(age, "age", 0)) +
     .points(cardiac, "cardiac", allowed = c(1, 2, 3)) +
-    .cr_sbp_pts(.num(systolic_bp, "systolic_bp")) +
-    .cr_pulse_pts(.num(pulse, "pulse")) +
-    .cr_hb_pts(.num(hb, "hb")) +
-    .cr_urea_pts(.num(urea, "urea"))
+    .cr_sbp_pts(.range(systolic_bp, "systolic_bp", 0)) +
+    .cr_pulse_pts(.range(pulse, "pulse", 0)) +
+    .cr_hb_pts(.range(hb, "hb", 0)) +
+    .cr_urea_pts(.range(urea, "urea", 0))
 }
 
 #' CR-POSSUM operative score
@@ -341,8 +346,8 @@ cr_possum_operative <- function(severity, soiling, cancer_staging, urgency) {
 #' cr_possum(physiological_score = 12, operative_score = 8)
 #' @export
 cr_possum <- function(physiological_score, operative_score) {
-    ps <- .score(physiological_score, "physiological_score", 6L, 23L)
-    os <- .score(operative_score, "operative_score", 4L, 22L)
+    ps <- .range(physiological_score, "physiological_score", 6, 23)
+    os <- .range(operative_score, "operative_score", 4, 22)
     stats::plogis(-9.167 + 0.338 * ps + 0.308 * os)
 }
 
@@ -374,7 +379,7 @@ cr_possum <- function(physiological_score, operative_score) {
 v_possum <- function(physiological_score, operative_score = NULL,
                      model = c("physiology", "full")) {
     model <- match.arg(model)
-    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
+    ps <- .range(physiological_score, "physiological_score", 12, 88)
     if (model == "physiology") {
         .no_operative_score(operative_score)
         return(stats::plogis(-6.0386 + 0.1539 * ps))
@@ -409,7 +414,7 @@ v_possum <- function(physiological_score, operative_score = NULL,
 raaa_possum <- function(physiological_score, operative_score = NULL,
                         model = c("physiology", "full")) {
     model <- match.arg(model)
-    ps <- .score(physiological_score, "physiological_score", 12L, 88L)
+    ps <- .range(physiological_score, "physiological_score", 12, 88)
     if (model == "physiology") {
         .no_operative_score(operative_score)
         return(stats::plogis(-2.7569 + 0.0968 * ps))

@@ -21,7 +21,8 @@ possum_physiology(
 }
 \arguments{
 \item{age, systolic_bp, pulse, gcs, hb, wbc, urea, sodium, potassium}{Numeric raw
-clinical values in the units above.}
+clinical values in the units above. All must be non-negative, and
+\code{gcs} must be 3-15, the range of the scale.}
 
 \item{cardiac, respiratory}{POSSUM points (1, 2, 4 or 8) for the cardiac and
 respiratory signs.}

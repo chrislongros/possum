@@ -16,9 +16,9 @@ possum_operative(
 \arguments{
 \item{severity, soiling, malignancy}{POSSUM points (1, 2, 4 or 8).}
 
-\item{n_procedures}{Number of procedures at this operation.}
+\item{n_procedures}{Number of procedures at this operation (at least 1).}
 
-\item{blood_loss}{Total blood loss in mL.}
+\item{blood_loss}{Total blood loss in mL (non-negative).}
 
 \item{urgency}{POSSUM points for the mode of surgery (1, 4 or 8).}
 }
