@@ -26,6 +26,23 @@
     x
 }
 
+## The physiology-only equations cannot use an operative score. Rather than
+## discard one the caller supplied -- which would quietly return a different
+## mortality from the one they asked for -- refuse it.
+.no_operative_score <- function(operative_score) {
+    if (!is.null(operative_score))
+        stop("`operative_score` is not used when model = \"physiology\". ",
+             "Set model = \"full\" to include it.", call. = FALSE)
+    invisible(NULL)
+}
+
+.need_operative_score <- function(operative_score) {
+    if (is.null(operative_score))
+        stop("`operative_score` is required when model = \"full\".",
+             call. = FALSE)
+    .num(operative_score, "operative_score")
+}
+
 .age_pts       <- function(x) ifelse(x <= 60, 1L, ifelse(x <= 70, 2L, 4L))
 .sbp_pts       <- function(x) ifelse(x >= 110 & x <= 130, 1L,
                              ifelse((x >= 100 & x < 110) | (x > 130 & x <= 170), 2L,
@@ -333,7 +350,8 @@ cr_possum <- function(physiological_score, operative_score) {
 #' @param physiological_score Standard POSSUM physiological score, e.g. from
 #'   \code{\link{possum_physiology}}.
 #' @param operative_score Standard POSSUM operative severity score, e.g. from
-#'   \code{\link{possum_operative}}. Required when \code{model = "full"}.
+#'   \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+#'   error when \code{model = "physiology"}, which cannot use it.
 #' @param model Which equation to use: \code{"physiology"} (default, physiology
 #'   score only) or \code{"full"} (physiology plus operative score).
 #' @return Predicted probability of mortality (0-1).
@@ -345,12 +363,11 @@ v_possum <- function(physiological_score, operative_score = NULL,
                      model = c("physiology", "full")) {
     model <- match.arg(model)
     ps <- .num(physiological_score, "physiological_score")
-    if (model == "physiology")
+    if (model == "physiology") {
+        .no_operative_score(operative_score)
         return(stats::plogis(-6.0386 + 0.1539 * ps))
-    if (is.null(operative_score))
-        stop("`operative_score` is required when model = \"full\".",
-             call. = FALSE)
-    os <- .num(operative_score, "operative_score")
+    }
+    os <- .need_operative_score(operative_score)
     stats::plogis(-8.0616 + 0.1552 * ps + 0.1238 * os)
 }
 
@@ -368,7 +385,8 @@ v_possum <- function(physiological_score, operative_score = NULL,
 #' @param physiological_score Standard POSSUM physiological score, e.g. from
 #'   \code{\link{possum_physiology}}.
 #' @param operative_score Standard POSSUM operative severity score, e.g. from
-#'   \code{\link{possum_operative}}. Required when \code{model = "full"}.
+#'   \code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+#'   error when \code{model = "physiology"}, which cannot use it.
 #' @param model Which equation to use: \code{"physiology"} (default, physiology
 #'   score only) or \code{"full"} (physiology plus operative score).
 #' @return Predicted probability of mortality (0-1).
@@ -380,11 +398,10 @@ raaa_possum <- function(physiological_score, operative_score = NULL,
                         model = c("physiology", "full")) {
     model <- match.arg(model)
     ps <- .num(physiological_score, "physiological_score")
-    if (model == "physiology")
+    if (model == "physiology") {
+        .no_operative_score(operative_score)
         return(stats::plogis(-2.7569 + 0.0968 * ps))
-    if (is.null(operative_score))
-        stop("`operative_score` is required when model = \"full\".",
-             call. = FALSE)
-    os <- .num(operative_score, "operative_score")
+    }
+    os <- .need_operative_score(operative_score)
     stats::plogis(-4.9795 + 0.0913 * ps + 0.0958 * os)
 }

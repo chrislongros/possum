@@ -15,7 +15,8 @@ raaa_possum(
 \code{\link{possum_physiology}}.}
 
 \item{operative_score}{Standard POSSUM operative severity score, e.g. from
-\code{\link{possum_operative}}. Required when \code{model = "full"}.}
+\code{\link{possum_operative}}. Required when \code{model = "full"}, and an
+error when \code{model = "physiology"}, which cannot use it.}
 
 \item{model}{Which equation to use: \code{"physiology"} (default, physiology
 score only) or \code{"full"} (physiology plus operative score).}

@@ -223,10 +223,15 @@ expect_equal(
     raaa_possum(physiological_score = 30, operative_score = 18, model = "full"),
     0.373764635406, tolerance = tol)
 
+## The physiology-only default must never quietly drop a supplied operative
+## score and return a different mortality from the one the caller asked for.
+expect_error(v_possum(25, 15), "not used when model")
+expect_error(raaa_possum(30, 18), "not used when model")
+expect_error(v_possum(25, 15, model = "physiology"), "not used when model")
 expect_error(v_possum(physiological_score = 25, model = "full"),
-             "operative_score")
+             "required when model")
 expect_error(raaa_possum(physiological_score = 30, model = "full"),
-             "operative_score")
+             "required when model")
 
 ## --- properties of the equations -------------------------------------------
 
