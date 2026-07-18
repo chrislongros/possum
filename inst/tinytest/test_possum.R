@@ -319,6 +319,26 @@ expect_identical(band(gcs = 15), 0L)
 expect_identical(oband(blood_loss = 0), 0L)
 expect_identical(oband(n_procedures = 1), 0L)
 
+## A raw value beyond the range of human physiology is a unit-entry slip, not a
+## patient. Without an upper bound, haemoglobin entered in g/L (140, not 14)
+## lands in the >18 band and is scored 8 points instead of 1, tripling the
+## predicted mortality in silence.
+expect_error(score(hb = 140), "hb")             # g/L instead of g/dL
+expect_error(score(urea = 100), "urea")         # mg/dL instead of mmol/L
+expect_error(score(wbc = 8000), "wbc")          # cells/uL instead of 10^9/L
+expect_error(score(sodium = 1400), "sodium")
+expect_error(score(potassium = 42), "potassium")
+expect_error(score(age = 200), "age")
+expect_error(score(systolic_bp = 1200), "systolic_bp")
+expect_error(score(pulse = 999), "pulse")
+expect_error(cband(hb = 140), "hb")
+expect_error(cband(urea = 100), "urea")
+
+## a genuinely extreme but possible value is still scored, not rejected
+expect_identical(band(hb = 25), 7L)             # severe polycythaemia (8 pts - 1)
+expect_true(is.numeric(score(wbc = 400)))       # leukaemic hyperleukocytosis
+expect_true(is.numeric(score(potassium = 9)))   # fatal hyperkalaemia
+
 ## --- data-frame interface --------------------------------------------------
 
 df <- data.frame(
@@ -345,3 +365,25 @@ expect_true(all(res$possum_morbidity[2] > res$possum_morbidity[1],
                 res$p_possum_mortality[2] > res$p_possum_mortality[1]))
 
 expect_error(possum_risk(df[, -1]), "age")
+
+## A missing or impossible value in one row must not abort the whole cohort: that
+## row is returned as NA and the others are still scored, with a warning.
+df_na <- df
+df_na$hb[2] <- NA
+expect_warning(res_na <- possum_risk(df_na), "could not be scored")
+expect_equal(nrow(res_na), 2L)
+expect_false(is.na(res_na$physiological_score[1]))
+expect_true(is.na(res_na$physiological_score[2]))
+expect_true(is.na(res_na$p_possum_mortality[2]))
+## the scored row is unchanged from the all-valid cohort
+expect_identical(res_na$physiological_score[1], res$physiological_score[1])
+
+## an out-of-range value (here a g/L haemoglobin slip) is handled the same way
+df_bad <- df
+df_bad$hb[1] <- 140
+expect_warning(res_bad <- possum_risk(df_bad), "could not be scored")
+expect_true(is.na(res_bad$physiological_score[1]))
+expect_false(is.na(res_bad$physiological_score[2]))
+
+## a fully valid cohort scores without warning
+expect_silent(possum_risk(df))

@@ -18,13 +18,20 @@ required by \code{\link{possum_physiology}} and
 \value{
 \code{data} with five columns added: \code{physiological_score},
   \code{operative_score}, \code{possum_morbidity}, \code{possum_mortality}
-  and \code{p_possum_mortality}.
+  and \code{p_possum_mortality}. Rows that could not be scored carry \code{NA}
+  in all five.
 }
 \description{
 Convenience wrapper that scores a whole cohort in one call, rather than
 invoking \code{\link{possum_physiology}}, \code{\link{possum_operative}} and
-the risk functions separately. All work is vectorised over the rows of
-\code{data}; a single-row data frame is one patient.
+the risk functions separately. Each row of \code{data} is one patient.
+}
+\details{
+Rows are scored independently. A row with a missing or out-of-range value
+cannot be scored, so its five output columns are returned as \code{NA} and
+the rest of the cohort is scored as normal; a single missing laboratory value
+no longer aborts the whole call. A warning reports how many rows were left
+unscored.
 }
 \examples{
 df <- data.frame(

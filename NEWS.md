@@ -5,7 +5,12 @@ First release.
 * `possum_physiology()` and `possum_operative()` score the twelve physiological
   and six operative variables; `possum()` and `p_possum()` turn those scores
   into predicted morbidity and mortality.
-* `possum_risk()` scores a whole cohort from a data frame in one call.
+* `possum_risk()` scores a whole cohort from a data frame in one call. A row
+  with a missing or out-of-range value is returned as `NA` and reported in a
+  warning, rather than aborting the whole cohort.
+* Raw clinical inputs are bounded above as well as below, so a unit-entry slip
+  (haemoglobin in g/L, urea in mg/dL) is rejected instead of being scored in an
+  inflated band.
 * Variants: `cr_possum()` (colorectal), `v_possum()` (vascular) and
   `raaa_possum()` (ruptured aortic aneurysm), with their own scorers where the
   cut-points differ.

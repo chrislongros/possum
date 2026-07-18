@@ -58,6 +58,15 @@
     .range(operative_score, "operative_score", 6, 48)
 }
 
+## Physiologically-generous upper bounds on the raw clinical inputs. Each sits
+## well beyond any real patient value, so a genuine extreme is never rejected,
+## but a unit-entry slip -- haemoglobin in g/L instead of g/dL, urea in mg/dL
+## instead of mmol/L -- lands outside the bound and errors, rather than being
+## scored in an inflated band. Blood loss has no upper bound: a real massive
+## haemorrhage can be many litres, with no ceiling that separates it from a typo.
+.clinical_max <- c(age = 130, systolic_bp = 300, pulse = 300, hb = 30,
+                   wbc = 500, urea = 70, sodium = 200, potassium = 10)
+
 .age_pts       <- function(x) ifelse(x <= 60, 1L, ifelse(x <= 70, 2L, 4L))
 .sbp_pts       <- function(x) ifelse(x >= 110 & x <= 130, 1L,
                              ifelse((x >= 100 & x < 110) | (x > 130 & x <= 170), 2L,
@@ -121,15 +130,15 @@
 #' @export
 possum_physiology <- function(age, systolic_bp, pulse, gcs, hb, wbc, urea,
                               sodium, potassium, cardiac, respiratory, ecg) {
-    .age_pts(.range(age, "age", 0)) +
-    .sbp_pts(.range(systolic_bp, "systolic_bp", 0)) +
-    .pulse_pts(.range(pulse, "pulse", 0)) +
+    .age_pts(.range(age, "age", 0, .clinical_max[["age"]])) +
+    .sbp_pts(.range(systolic_bp, "systolic_bp", 0, .clinical_max[["systolic_bp"]])) +
+    .pulse_pts(.range(pulse, "pulse", 0, .clinical_max[["pulse"]])) +
     .gcs_pts(.range(gcs, "gcs", 3, 15)) +
-    .hb_pts(.range(hb, "hb", 0)) +
-    .wbc_pts(.range(wbc, "wbc", 0)) +
-    .urea_pts(.range(urea, "urea", 0)) +
-    .sodium_pts(.range(sodium, "sodium", 0)) +
-    .potassium_pts(.range(potassium, "potassium", 0)) +
+    .hb_pts(.range(hb, "hb", 0, .clinical_max[["hb"]])) +
+    .wbc_pts(.range(wbc, "wbc", 0, .clinical_max[["wbc"]])) +
+    .urea_pts(.range(urea, "urea", 0, .clinical_max[["urea"]])) +
+    .sodium_pts(.range(sodium, "sodium", 0, .clinical_max[["sodium"]])) +
+    .potassium_pts(.range(potassium, "potassium", 0, .clinical_max[["potassium"]])) +
     .points(cardiac, "cardiac") +
     .points(respiratory, "respiratory") +
     .points(ecg, "ecg", allowed = c(1, 4, 8))
@@ -213,8 +222,13 @@ p_possum <- function(physiological_score, operative_score) {
 #'
 #' Convenience wrapper that scores a whole cohort in one call, rather than
 #' invoking \code{\link{possum_physiology}}, \code{\link{possum_operative}} and
-#' the risk functions separately. All work is vectorised over the rows of
-#' \code{data}; a single-row data frame is one patient.
+#' the risk functions separately. Each row of \code{data} is one patient.
+#'
+#' Rows are scored independently. A row with a missing or out-of-range value
+#' cannot be scored, so its five output columns are returned as \code{NA} and
+#' the rest of the cohort is scored as normal; a single missing laboratory value
+#' no longer aborts the whole call. A warning reports how many rows were left
+#' unscored.
 #'
 #' @param data A data frame (one row per patient) containing the columns
 #'   required by \code{\link{possum_physiology}} and
@@ -225,7 +239,8 @@ p_possum <- function(physiological_score, operative_score) {
 #'   \code{soiling}, \code{malignancy} and \code{urgency}.
 #' @return \code{data} with five columns added: \code{physiological_score},
 #'   \code{operative_score}, \code{possum_morbidity}, \code{possum_mortality}
-#'   and \code{p_possum_mortality}.
+#'   and \code{p_possum_mortality}. Rows that could not be scored carry \code{NA}
+#'   in all five.
 #' @examples
 #' df <- data.frame(
 #'   age = c(45, 82), systolic_bp = c(120, 95), pulse = c(70, 115),
@@ -246,20 +261,47 @@ possum_risk <- function(data) {
         stop("`data` is missing required columns: ",
              paste(absent, collapse = ", "), call. = FALSE)
 
-    ps <- possum_physiology(data$age, data$systolic_bp, data$pulse, data$gcs,
-                            data$hb, data$wbc, data$urea, data$sodium,
-                            data$potassium, data$cardiac, data$respiratory,
-                            data$ecg)
-    os <- possum_operative(data$severity, data$n_procedures, data$blood_loss,
-                           data$soiling, data$malignancy, data$urgency)
-    risk <- possum(ps, os)
+    data <- as.data.frame(data)
+    n <- nrow(data)
+    ps <- os <- rep(NA_integer_, n)
+    morbidity <- mortality <- p_mortality <- rep(NA_real_, n)
 
-    out <- as.data.frame(data)
+    for (i in seq_len(n)) {
+        scored <- tryCatch({
+            p <- possum_physiology(data$age[i], data$systolic_bp[i],
+                                   data$pulse[i], data$gcs[i], data$hb[i],
+                                   data$wbc[i], data$urea[i], data$sodium[i],
+                                   data$potassium[i], data$cardiac[i],
+                                   data$respiratory[i], data$ecg[i])
+            o <- possum_operative(data$severity[i], data$n_procedures[i],
+                                  data$blood_loss[i], data$soiling[i],
+                                  data$malignancy[i], data$urgency[i])
+            r <- possum(p, o)
+            list(ps = p, os = o, morbidity = r$morbidity,
+                 mortality = r$mortality, p_mortality = p_possum(p, o))
+        }, error = function(e) NULL)
+        if (!is.null(scored)) {
+            ps[i] <- scored$ps
+            os[i] <- scored$os
+            morbidity[i]   <- scored$morbidity
+            mortality[i]   <- scored$mortality
+            p_mortality[i] <- scored$p_mortality
+        }
+    }
+
+    unscored <- sum(is.na(ps))
+    if (unscored)
+        warning(sprintf(
+            "%d of %d row%s could not be scored (missing or out-of-range inputs) and %s returned as NA.",
+            unscored, n, if (unscored == 1L) "" else "s",
+            if (unscored == 1L) "was" else "were"), call. = FALSE)
+
+    out <- data
     out$physiological_score <- ps
     out$operative_score     <- os
-    out$possum_morbidity    <- risk$morbidity
-    out$possum_mortality    <- risk$mortality
-    out$p_possum_mortality  <- p_possum(ps, os)
+    out$possum_morbidity    <- morbidity
+    out$possum_mortality    <- mortality
+    out$p_possum_mortality  <- p_mortality
     out
 }
 
@@ -302,12 +344,12 @@ possum_risk <- function(data) {
 #'                      hb = 12, urea = 8)
 #' @export
 cr_possum_physiology <- function(age, cardiac, systolic_bp, pulse, hb, urea) {
-    .cr_age_pts(.range(age, "age", 0)) +
+    .cr_age_pts(.range(age, "age", 0, .clinical_max[["age"]])) +
     .points(cardiac, "cardiac", allowed = c(1, 2, 3)) +
-    .cr_sbp_pts(.range(systolic_bp, "systolic_bp", 0)) +
-    .cr_pulse_pts(.range(pulse, "pulse", 0)) +
-    .cr_hb_pts(.range(hb, "hb", 0)) +
-    .cr_urea_pts(.range(urea, "urea", 0))
+    .cr_sbp_pts(.range(systolic_bp, "systolic_bp", 0, .clinical_max[["systolic_bp"]])) +
+    .cr_pulse_pts(.range(pulse, "pulse", 0, .clinical_max[["pulse"]])) +
+    .cr_hb_pts(.range(hb, "hb", 0, .clinical_max[["hb"]])) +
+    .cr_urea_pts(.range(urea, "urea", 0, .clinical_max[["urea"]]))
 }
 
 #' CR-POSSUM operative score
